@@ -1,38 +1,36 @@
 #!/usr/bin/python3
 
 import sys
+import os
+from os.path import exists
 import datetime
+import struct
+import hashlib
+from hashlib import *
+
+# --------------------------------------
+# get environment variable
+# --------------------------------------
+#for gradescope
+#path = os.getenv("BCHOC_FILE_PATH")
+
+#for testing
+path = "./output.txt"
 
 chain = []
-
-class block:
-    def __init__(self, caseID, itemID, state, time_now):
-        self.caseID = caseID
-        self.itemID = itemID
-        self.state = state
-        self.time_now = time_now
-        
-        print("Added item: ", self.itemID)
-        print("  Status: ", self.state)
-        print("  Time of action: ", self.time_now)  
 
 # --------------------------------------
 # add
 # --------------------------------------
-def add(caseID, itemID, state = "CHECKEDIN"):
+def add(path, caseID, itemID):
     
-    time_now = datetime.datetime.now()
-    
-    if len(chain) == 0:
-        print("Case: ", caseID)
-        chain.append(block(caseID, itemID, state, time_now))
-        
-    elif chain[len(chain)-1].caseID == caseID:
-        chain.append(block(caseID, itemID, state, time_now))
-        
-    elif chain[len(chain)-1].caseID == caseID:
-        print("Case: ", caseID)
-        chain.append(block(caseID, itemID, state, time_now))
+    # if file exists------------- 
+    if exists(path):
+        print ("file exists")
+
+    # else (if path does not exist)------------- 
+    elif not exists(path):
+        init(path)
    
         
 # --------------------------------------
@@ -62,8 +60,36 @@ def remove():
 # --------------------------------------
 # init
 # --------------------------------------
-def init():
-    print("init")
+def init(path):
+    
+    # if path does not exist------------- 
+    if not exists(path):
+        print("Blockchain file not found. Created INITIAL block.")
+        
+        # create block
+        prev = ''
+        prev_hash = str.encode(prev)
+        time_now = (datetime.datetime.now()).timestamp()
+        case_id = str.encode('')
+        evidence_item = 0
+        state = "INITIAL"
+        data_length = 14
+        data = 0
+
+        # create and write to file
+        with open(path, 'wb') as file:
+
+            file.write(
+
+                # struct.pack("format", prev_hash, time_now, case_id, evidence_item, state, data_length, data)
+                struct.pack("32s d 16s I 12s I", 
+                            *(prev_hash, time_now, case_id, evidence_item, str.encode(state), data_length)
+                )
+            )
+
+    # if path exists------------- 
+    elif exists(path):
+        print("Blockchain file found with INITIAL block.")
     
 # --------------------------------------
 # verify
@@ -78,10 +104,13 @@ def verify():
 input = (sys.argv)
 caseID = 0
 itemID = 0
+
 if (len(input)) > 1:
 
     # if 2nd argument is "add" ------------- 
     if input[1] == "add":
+    
+        items = []
     
         # if 3rd argument is "-c"
         if input[2] == "-c":
@@ -91,8 +120,11 @@ if (len(input)) > 1:
         for i in range(4, len(input), 2):
             if input[i] == "-i":
                 itemID = input[i+1]
-                add(caseID, itemID)
-        
+                items.append(itemID)
+
+        add(path, caseID, items)
+
+    
     # if 2nd argument is "checkout" -------------     
     elif input[1] == "checkout":
         checkout()
@@ -147,7 +179,7 @@ if (len(input)) > 1:
         
     # if 2nd argument is "init" ------------- 
     elif input[1] == "init":
-        init()       
+        init(path)       
         
     # if 2nd argument is "verify" -------------     
     elif input[1] == "verify":
